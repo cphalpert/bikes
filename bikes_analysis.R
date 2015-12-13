@@ -1,0 +1,298 @@
+#######################
+## Setup environment
+#######################
+# setwd("/Users/afenichel14/Documents/Columbia/Statistical Inference and Modeling")
+
+set.seed(1)
+
+#######################0
+## Install required packages
+#######################
+# install.packages('ggplot2', repos = "http://cran.us.r-project.org")
+# install.packages('scales', repos = "http://cran.us.r-project.org")
+# install.packages('readr', repos = "http://cran.us.r-project.org")
+# install.packages('caret', repos = "http://cran.us.r-project.org")
+
+#######################
+## Load packages
+#######################
+# library(ggplot2)
+# library(readr)
+# library(scales)
+# library(reshape2)
+# library(plyr)
+# library(caret)
+
+#######################
+## Load and transform data
+#######################
+train <- read.csv("./data/train.csv")
+test  <- read.csv("./data/test.csv")
+
+apply_transformations <- function (data) {
+  data$datetime <- as.POSIXct(strftime(data$datetime, format="%Y-%m-%d %H:%M:%S"), format="%Y-%m-%d %H:%M:%S")
+  # Isolate time
+  data$times <- as.POSIXct(strftime(data$datetime, format="%H:%M:%S"), format="%H:%M:%S")
+  # Isolate year
+  data$year <- strftime(data$datetime, format="%Y")
+  # Isolate hour
+  data$hour  <- strftime(data$datetime, format="%H")
+  # Isolate weekday
+  data$day   <-strftime(data$datetime,'%A')
+  # Isolate date
+  data$date <- as.POSIXct(strftime(data$datetime, format="%Y-%m-%d"), format="%Y-%m-%d")
+  
+  # Convert numeric factors
+  data$season <- as.factor(data$season)
+  data$holiday <- as.factor(data$holiday)
+  data$workingday <- as.factor(data$workingday)
+  data$weather <- as.factor(data$weather)
+  data$hour <- as.factor(data$hour)
+  data$day <- as.factor(data$day)
+  data$days.from.start <- (as.Date(data$datetime) - as.Date("2011-01-01"))
+  
+  return(data)
+}
+
+train <- apply_transformations(train)
+test <- apply_transformations(test)
+
+
+
+
+
+#######################
+## Exploratory Analysis
+#######################
+
+train.count.by.date_hour <- aggregate(datetime ~ date, data=train, FUN=length)
+ggplot() +
+  geom_point(aes(x=date, y=datetime), data=train.count.by.date_hour)+
+  ggtitle('Count of hourly observations vs date in training data')
+
+cols <- c('datetime','date')
+full.data <- rbind(train[,cols], test[,cols])
+full.count.by.date_hour <- aggregate(datetime ~ date, data=full.data, FUN=length)
+test.count.by.date_hour <- aggregate(datetime ~ date, data=test, FUN=length)
+
+ggplot() +
+  geom_point(aes(x=date, y=datetime), data=full.count.by.date_hour)+
+  geom_point(aes(x=date, y=datetime), data=test.count.by.date_hour, color='red', size = I(3))+
+  ggtitle('Count of hourly observations vs date in full data set')
+
+sum.by.date_hour <- aggregate(count ~ date, data=train, FUN=sum)
+ggplot() + 
+  geom_point(data=sum.by.date_hour, aes(x=date, y=count), color='black') + 
+  geom_point(data=sum.by.date_hour[train.count.by.date_hour$datetime < 24,], aes(x=date, y=count), color='red', size = I(3)) +
+  ggtitle("Sum of count vs date-hour")
+
+
+full_dates <- train.count.by.date_hour[train.count.by.date_hour$datetime == 24,]$date
+
+tapply(train$count, train$day, mean)
+boxplot(train$count ~ train$day)
+tapply(train$count, train$workingday, mean)
+boxplot(train$count ~ train$workingday)
+
+
+
+
+#######################
+## Wilcox test (IMS CH10)
+#######################
+# Wilcox test by weekday
+# found no significant difference weekday vs weekend with p-value= 0.9679
+wilcox.test(count~workingday, data = train)
+
+# Wilcox test by holiday
+# found no significant difference weekday vs weekend with p-value= 0.8646
+wilcox.test(count~holiday, data = train)
+
+# Kruskal test by weekday
+kruskal.test(count ~ day, data=train)
+
+# Kruskal test by weekday for workingday = 1 subset
+kruskal.test(count ~ day, data=train, subset=workingday=="1")
+
+# Kruskal test by weekday for workingday = 0 subset
+kruskal.test(count ~ day, data=train, subset=workingday=="0")
+
+# Kruskal test by weekday for holiday = 1 subset
+kruskal.test(count ~ day, data=train, subset=holiday=="1")
+
+# Kruskal test by hour
+kruskal.test(count ~ hour, data=train)
+
+# Kruskal test by hour for workingday = 0 subset
+kruskal.test(count~hour, data=train, subset=workingday=="0")
+
+# Kruskal test by hour for workingday = 1 subset
+# there are significant differences by hour whether workingday or not indicating independence with p-value < 2.2e-16
+kruskal.test(count~hour, data=train, subset=workingday=="1")
+
+# Kruskal test by hour for peak hours
+#interestingly, the wilcox test was able to differentiate by hour even accounting for period when peak and non-peak
+kruskal.test(count~hour, data=train, subset=hour%in%c("11","12","13"))
+
+# Kruskal test by weather
+# there are significant differences across different types of weather
+kruskal.test(count ~ weather, data=train)
+
+
+# Kruskal test by season
+# there are significant differences across different seasons
+kruskal.test(count ~ season, data=train)
+
+## NOTE - was getting an error - Switched these from wilcox to kruskal - Chris
+# there are significant differences across both temp and adjusted temp
+kruskal.test(count ~ atemp, data=train)
+kruskal.test(count ~ temp, data=train)
+
+# there are significant differences across humidity
+kruskal.test(count ~ humidity, data=train)
+
+
+kruskal.test(count ~ windspeed, data=train)
+
+
+
+
+#######################
+## ANOVA
+#######################
+lm.fit1=lm(casual~poly(hour,1), data=train.data)
+lm.fit2=lm(casual~poly(hour,2), data=train)
+lm.fit3=lm(casual~poly(hour,3), data=train)
+lm.fit4=lm(casual~poly(hour,4), data=train)
+lm.fit5=lm(casual~poly(hour,5), data=train)
+lm.fit6=lm(casual~poly(hour,6), data=train)
+lm.fit7=lm(casual~poly(hour,7), data=train)
+lm.fit8=lm(casual~poly(hour,8), data=train)
+
+anova(lm.fit1, lm.fit2, lm.fit3, lm.fit4, lm.fit5, lm.fit6, lm.fit7, lm.fit8)
+
+plt=as.matrix(cbind(rep(1,n),poly(hour,6)))%*%as.matrix(lm.fit6$coef)
+par(mfrow=c(2,1))
+plot(hour,plt)
+plot(hour, casual)
+
+
+
+
+
+anova.data <- ddply(train[train$est >= '2011-01-01' & train$est < '2012-12-15' ,], c("day", "date"), summarise, count = sum(count))
+
+anova.fit <- aov(count ~ day+hour, data=train[train$est >= '2011-01-01' & train$est < '2012-12-15',])
+summary(anova.fit)
+
+anova.fit
+print(model.tables(anova.fit,"means"),digits=3)
+#layout(matrix(c(1,2,3,4),2,2)) # optional layout 
+#plot(anova.fit)
+
+pairwise.t.test(anova.data$count, anova.data$day, p.adjust="bonferroni")
+
+anova.fit <- aov(count ~ day, data=train[train$est >= '2011-01-01' & train$est < '2012-12-15',])
+summary(anova.fit)
+print(model.tables(anova.fit,"means"),digits=3)
+layout(matrix(c(1,2,3,4),2,2)) # optional layout 
+plot(anova.fit)
+
+plot(anova.fit)
+
+
+
+
+#######################
+## Linear regression
+#######################
+
+# Apply subset
+train.data <- subset(train, select=-c(casual, count, datetime, times, year, date))
+
+# Specify functional form
+formula <- as.formula(registered~.)
+
+# Simple linear regression
+train.lm.fit=lm(formula, data=train.data)
+summary(train.lm.fit)
+
+#######################
+## Forward selection
+#######################
+library(leaps)
+train.regfit=regsubsets(formula, data=train.data, nvmax=NULL, nbest=1, method='forward')
+summary(train.regfit)
+
+train.matrix <- model.matrix(formula, data=train.data)
+
+#######################
+## Cross validation
+#######################
+library(caret)
+set.seed(1)
+k.cv = 5
+
+train.val.errors <- matrix(NA,train.regfit$nvmax, k.cv)
+folds <- createFolds(c(1:dim(train.data)[1]), k=k.cv, list=TRUE, returnTrain=FALSE)
+for(i in 1:train.regfit$nvmax){
+  coefi=coef(train.regfit, id=i)
+  train.mat = train.model.mat[,names(coefi)]
+  for(j in 1:k.cv){
+    test=folds[[j]]
+    lm.fit=lm(train$registered[-test]~.-1, data=data.frame(train.mat[-test,]))
+    pred=as.matrix(train.mat[test,]) %*% as.matrix(lm.fit$coef)
+    train.val.errors[i,j]=mean((as.matrix(train$registered[test])-pred)^2)
+  }
+}
+regfit.mse=apply(train.val.errors,1,mean)
+which.min(regfit.mse)
+## The best model is the one with 22 coefficients
+plot(regfit.mse)
+coefi=coef(train.regfit, id=22)
+bestfit.mat=model.mat[,names(coefi)]
+lm.bestfit=lm(train$registered~.-1,data=data.frame(bestfit.mat))
+summary(lm.bestfit)
+## R^2 and Adjust R^2 are both 68%, which 
+
+
+
+
+#######################
+## Splines
+#######################
+library(splines)
+par(mfrow=c(1,1))
+plot(temp,registered)
+lines(fit.s, col='green', lwd=5)
+templims=range(temp)
+temp.grid=seq(from=templims[1],to=templims[2])
+fit.s=smooth.spline(temp, registered, cv=TRUE)
+pred=predict(fit.s, newdata=list(temp=temp.grid),se=T)
+fit.s$df
+res=(fit.s$yin-fit.s$y)/(1-fit.s$lev)
+sigma=sqrt(var(res))
+upper=fit.s$y+2.0*sigma*sqrt(fit.s$lev)
+lower=fit.s$y-2.0*sigma*sqrt(fit.s$lev)
+
+plot(temp,registered)
+lines(pred$y, lwd=2, col='green')
+lines(upper, lwd=2, col='grey', lty=2)
+lines(lower, lwd=2, col='grey', lty=2)
+
+#######################
+## GAM
+#######################
+library(gam)
+gam.casual=gam(registered~s(temp), data=Bike, se=TRUE)
+par(mfrow=c(2,2))
+plot(gam.casual)
+summary(gam.casual)
+names(gam.casual)
+
+gam.reg=gam(registered~s(temp)+workingday+season+s(hour), data=rTrain, se=TRUE)
+par(mfrow=c(2,2))
+plot(gam.reg)
+summary(gam.reg)
+names(gam.reg)
+
