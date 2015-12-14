@@ -83,6 +83,7 @@ plot(count~day, data=train)
 
 
 
+
 train.count.by.date_hour <- aggregate(datetime ~ date, data=train, FUN=length)
 ggplot() +
   geom_point(aes(x=date, y=datetime), data=train.count.by.date_hour)+
