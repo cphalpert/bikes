@@ -240,7 +240,7 @@ library(caret)
 train.model.mat <- model.matrix(formula, data=train.data)
 
 set.seed(1)
-k.cv = 5
+k.cv = 10
 p <- dim(train.model.mat)[2] - 1
 n <- dim(train.data)[1]
 train.val.errors <- matrix(NA, p , k.cv)
@@ -275,6 +275,8 @@ summary(lm.bestfit)
 plot(lm.bestfit)
 
 
+
+# Models with transformations
 library(boot)
 # 3726 MSE
 # 0.89 adj r^2
@@ -283,7 +285,6 @@ rf <- glm(f, data=train)
 cv.glm(train, rf, K = 5)$delta[2]
 summary(lm(f, data=train))
 
-# 
 f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
 rf <- glm(f, data=train)
 cv.glm(train, rf, K = 5)$delta[2]
@@ -337,13 +338,13 @@ lines(lower, lwd=2, col='grey', lty=2)
 ## GAM
 #######################
 library(mgcv)
-gam.fit <- gam(count~s(days.from.start), data=na.omit(train))
-
-
-gam.fit <- gam(count~s(humidity)+s(temp)+s(windspeed)+s(windspeed)+s(days.from.start), data=na.omit(train))
-par(mfrow=c(1,3))
+gam.fit <- gam(count~s(as.integer(hour))+s(humidity)+s(temp)+s(windspeed)+s(windspeed)+days.from.start, data=na.omit(train))
+par(mfrow=c(2,2))
 plot(gam.fit)
 summary(gam.fit)
+
+
+
 
 
 ### Kaggle submission
