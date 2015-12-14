@@ -62,6 +62,22 @@ test <- apply_transformations(test)
 #######################
 ## Exploratory Analysis
 #######################
+par(mfrow=c(2,2))
+plot(count~atemp, data=train)
+plot(count~humidity, data=train)
+plot(count~weather, data=train)
+plot(count~windspeed, data=train)
+
+par(mfrow=c(2,2))
+plot(count~date,  data=train)
+plot(count~hour, data=train)
+plot(count~holiday, data=train)
+plot(count~season, data=train)
+
+par(mfrow=c(1,1))
+plot(count~day, data=train)
+
+
 
 train.count.by.date_hour <- aggregate(datetime ~ date, data=train, FUN=length)
 ggplot() +
