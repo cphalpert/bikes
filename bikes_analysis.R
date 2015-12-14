@@ -50,7 +50,7 @@ apply_transformations <- function (data) {
   data$hour <- as.factor(data$hour)
   data$day <- as.factor(data$day)
   data$days.from.start <- (as.Date(data$datetime) - as.Date("2011-01-01"))
-  
+  data$hours.from.start <- difftime(data$datetime, as.Date('2011-01-01'), units="hours")
   return(data)
 }
 
@@ -69,7 +69,8 @@ plot(count~weather, data=train)
 plot(count~windspeed, data=train)
 
 par(mfrow=c(2,2))
-plot(count~date,  data=train)
+# Average count by date
+plot(sort(unique(train$date)), tapply(train$count, train$date, mean))
 plot(count~hour, data=train)
 plot(count~holiday, data=train)
 plot(count~season, data=train)
@@ -99,14 +100,6 @@ ggplot() +
   geom_point(data=sum.by.date_hour, aes(x=date, y=count), color='black') + 
   geom_point(data=sum.by.date_hour[train.count.by.date_hour$datetime < 24,], aes(x=date, y=count), color='red', size = I(3)) +
   ggtitle("Sum of count vs date-hour")
-
-
-full_dates <- train.count.by.date_hour[train.count.by.date_hour$datetime == 24,]$date
-
-tapply(train$count, train$day, mean)
-boxplot(train$count ~ train$day)
-tapply(train$count, train$workingday, mean)
-boxplot(train$count ~ train$workingday)
 
 
 
@@ -227,7 +220,7 @@ plot(hour,plt)
 #######################
 
 # Apply subset
-train.data <- subset(train, select=-c(casual, registered, datetime, times, year, date, workingday))
+train.data <- subset(train, select=-c(casual, registered, datetime, times, year, date, workingday, hours.from.start, temp))
 
 # Specify functional form
 formula <- as.formula(count~.)
@@ -240,7 +233,7 @@ summary(train.lm.fit)
 #######################
 library(leaps)
 
-train.regfit <- regsubsets(formula, data=train.data, nvmax=NULL, nbest=1, method='exhaustive')
+train.regfit <- regsubsets(formula, data=train.data, nvmax=NULL, nbest=1, method='forward')
 plot(train.regfit)
 
 train.model.mat <- model.matrix(formula, data=train.data)
@@ -276,64 +269,13 @@ which.min(regfit.mse)
 plot(regfit.mse)
 
 
-
-coefi=coef(train.regfit, id=4)
-bestfit.mat=train.model.mat[,names(coefi)]
+# Extract the best model
+best.coefi=coef(train.regfit, id=which.min(regfit.mse))
+bestfit.mat=train.model.mat[,names(best.coefi)]
 lm.bestfit=lm(train$count~.-1,data=data.frame(bestfit.mat))
 summary(lm.bestfit)
 ## R^2 and Adjust R^2 are both 68%, which 
 
-
-
-
-
-
-
-
-
-
-
-#######################
-## Forward selection
-#######################
-library(leaps)
-train.regfit=regsubsets(formula, data=train.data, nvmax=NULL, nbest=1, method='forward')
-summary(train.regfit)
-
-train.model.mat <- model.matrix(formula, data=train.data)
-
-#######################
-## Cross validation
-#######################
-library(caret)
-
-set.seed(1)
-k.cv = 4
-p <- train.regfit$nvmax - 1
-n <- dim(train.data)[1]
-train.val.errors <- matrix(NA, p , k.cv)
-folds <- createFolds(c(1:n), k=k.cv, list=TRUE, returnTrain=FALSE)
-for(i in 1:p){
-  coefi=coef(train.regfit, id=i)
-  train.mat = train.model.mat[,names(coefi)]
-  for(j in 1:k.cv){
-    fold_index=folds[[j]]
-    lm.fit=lm(train$count[-fold_index]~.-1, data=data.frame(train.mat[-fold_index,]))
-    pred=as.matrix(train.mat[fold_index,]) %*% as.matrix(lm.fit$coef)
-    train.val.errors[i,j]=mean((as.matrix(train$count[fold_index])-pred)^2)
-  }
-}
-regfit.mse=apply(train.val.errors,1,mean)
-which.min(regfit.mse)
-
-
-## The best model is the one with 22 coefficients
-plot(regfit.mse)
-coefi=coef(train.regfit, id=4)
-bestfit.mat=train.model.mat[,names(coefi)]
-lm.bestfit=lm(train$count~.-1,data=data.frame(bestfit.mat))
-summary(lm.bestfit)
-## R^2 and Adjust R^2 are both 68%, which 
 
 
 
@@ -354,10 +296,10 @@ var.spline.fit$df
 
 var.spline.predict <- predict(var.spline.fit, newdata=list(var.seq),se=T)
 
-res=(var.spline.fit$df$yin - var.spline.fit$df$y)/(1-var.spline.fit$df$lev)
-sigma=sqrt(var(res))
-upper=var.spline.fit$y+2.0*sigma*sqrt(var.spline.fit$lev)
-lower=var.spline.fit$y-2.0*sigma*sqrt(var.spline.fit$lev)
+res<-(var.spline.fit$yin - var.spline.fit$y)/(1-var.spline.fit$lev)
+sigma<-sqrt(var(res))
+upper<-var.spline.fit$y+2.0*sigma*sqrt(var.spline.fit$lev)
+lower<-var.spline.fit$y-2.0*sigma*sqrt(var.spline.fit$lev)
 
 
 par(mfrow=c(1,1))
