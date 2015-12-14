@@ -5,7 +5,7 @@
 
 set.seed(1)
 
-#######################0
+#######################
 ## Install required packages
 #######################
 # install.packages('ggplot2', repos = "http://cran.us.r-project.org")
@@ -51,6 +51,9 @@ apply_transformations <- function (data) {
   data$day <- as.factor(data$day)
   data$days.from.start <- (as.Date(data$datetime) - as.Date("2011-01-01"))
   data$hours.from.start <- difftime(data$datetime, as.Date('2011-01-01'), units="hours")
+  
+  #Remove outlier with only 1 data point
+  data <- data[data$weather != 4,]
   return(data)
 }
 
@@ -229,19 +232,12 @@ formula <- as.formula(count~.)
 train.lm.fit <- lm(formula, data=train.data)
 summary(train.lm.fit)
 #######################
-## Forward selection
+## Forward selection with K-fold Cross validation
 #######################
 library(leaps)
-
-train.regfit <- regsubsets(formula, data=train.data, nvmax=NULL, nbest=1, method='forward')
-plot(train.regfit)
+library(caret)
 
 train.model.mat <- model.matrix(formula, data=train.data)
-
-#######################
-## K-fold Cross validation
-#######################
-library(caret)
 
 set.seed(1)
 k.cv = 5
@@ -266,6 +262,7 @@ for(j in 1:k.cv){
 
 regfit.mse=apply(train.val.errors,1,mean)
 which.min(regfit.mse)
+regfit.mse[which.min(regfit.mse)]
 plot(regfit.mse)
 
 
@@ -274,8 +271,32 @@ best.coefi=coef(train.regfit, id=which.min(regfit.mse))
 bestfit.mat=train.model.mat[,names(best.coefi)]
 lm.bestfit=lm(train$count~.-1,data=data.frame(bestfit.mat))
 summary(lm.bestfit)
-## R^2 and Adjust R^2 are both 68%, which 
 
+plot(lm.bestfit)
+
+
+library(boot)
+# 3726 MSE
+# 0.89 adj r^2
+f <- as.formula(count~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
+rf <- glm(f, data=train)
+cv.glm(train, rf, K = 5)$delta[2]
+summary(lm(f, data=train))
+
+# 
+f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
+rf <- glm(f, data=train)
+cv.glm(train, rf, K = 5)$delta[2]
+summary(lm(f, data=train))
+
+f <- as.formula(count~season+atemp+humidity+windspeed+hour+day+days.from.start+weather)
+#rf <- glm(f, data=train)
+#cv.glm(train, rf, K = 7)$delta[2]
+summary(lm(f, data=train))
+
+f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day*hour))
+rf <- glm(f, data=train)
+cv.glm(train, rf, K = 5)$delta[2]
 
 
 
@@ -285,9 +306,10 @@ summary(lm.bestfit)
 #######################
 library(splines)
 
-variable <- 'temp'
+variable <- 'atemp'
 # Get range of temperature variable
 var.lims <- range(train[,variable])
+#var.seq <- seq(from=var.lims[1], to=var.lims[2], by='h')
 var.seq <- seq(from=var.lims[1], to=var.lims[2])
 
 var.spline.fit <- smooth.spline(train[,variable], train$count, cv=TRUE)
@@ -304,6 +326,7 @@ lower<-var.spline.fit$y-2.0*sigma*sqrt(var.spline.fit$lev)
 
 par(mfrow=c(1,1))
 plot(train$count~train[,variable])
+#lines(var.spline.fit, lwd=2, col='green')
 lines(var.spline.predict$y, lwd=2, col='green')
 lines(upper, lwd=2, col='grey', lty=2)
 lines(lower, lwd=2, col='grey', lty=2)
@@ -313,16 +336,17 @@ lines(lower, lwd=2, col='grey', lty=2)
 #######################
 ## GAM
 #######################
-library(gam)
-gam.casual=gam(registered~s(temp), data=Bike, se=TRUE)
-par(mfrow=c(2,2))
-plot(gam.casual)
-summary(gam.casual)
-names(gam.casual)
+library(mgcv)
+gam.fit <- gam(count~s(days.from.start), data=na.omit(train))
 
-gam.reg=gam(registered~s(temp)+workingday+season+s(hour), data=rTrain, se=TRUE)
-par(mfrow=c(2,2))
-plot(gam.reg)
-summary(gam.reg)
-names(gam.reg)
 
+gam.fit <- gam(count~s(humidity)+s(temp)+s(windspeed)+s(windspeed)+s(days.from.start), data=na.omit(train))
+par(mfrow=c(1,3))
+plot(gam.fit)
+summary(gam.fit)
+
+
+### Kaggle submission
+pred <- predict(rf, test)
+write.table(cbind(test$datetime, data.frame(exp(pred))), quote=FALSE, file='testing.csv', sep=',', row.names=FALSE, col.names=c('datetime','count'))
+  
