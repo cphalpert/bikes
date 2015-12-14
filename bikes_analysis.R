@@ -95,13 +95,20 @@ p5 <- ggplot(train, aes(hour, count)) + geom_boxplot() + ggtitle("Count spikes d
 p6 <- ggplot(train, aes(holiday, count)) + geom_boxplot() + ggtitle("Count drops on holidays") + xlab('Holiday') + ylab('Rental Count')
 p7 <- ggplot(train, aes(season, count)) + geom_boxplot() + ggtitle("Count is largest in the summer") + xlab('Season') + ylab('Rental Count')
 p8 <- ggplot(train, aes(day, count)) + geom_boxplot() + ggtitle("Count decreases on weekends") + xlab('Weekday') + ylab('Rental Count')
-
-ggplot() + geom_point(aes(x=sort(unique(train$date)), y=tapply(train$count, train$date, mean)))  + ggtitle("Average count by date increases over time") + xlab('Date') + ylab('Rental Count')
 grid.arrange(p1, p2, ncol=2)
 grid.arrange(p3, p4, ncol=2)
 grid.arrange(p5, p6, ncol=2)
 grid.arrange(p7, p8, ncol=2)
 
+# Average count by date
+ggplot() + geom_point(aes(x=sort(unique(train$date)), y=tapply(train$count, train$date, mean)))  + ggtitle("Average count by date increases over time") + xlab('Date') + ylab('Rental Count')
+
+# Average count by weekday and hour
+ggplot(aggregate(count~hour+day, data=train, FUN=mean), aes(x=hour, y=count)) +  
+  geom_line(aes(color=day, group=day)) +
+  ggtitle('Average count by weekday and hour') +
+  xlab('Hour') +
+  ylab('Average count')
 
 
 #######################
