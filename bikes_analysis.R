@@ -11,8 +11,9 @@ set.seed(1)
 # install.packages('ggplot2', repos = "http://cran.us.r-project.org")
 # install.packages('scales', repos = "http://cran.us.r-project.org")
 # install.packages('readr', repos = "http://cran.us.r-project.org")
+# install.packages('leaps', repos = "http://cran.us.r-project.org")
 # install.packages('caret', repos = "http://cran.us.r-project.org")
-
+# install.packages('ellipse', repos = "http://cran.us.r-project.org")
 #######################
 ## Load packages
 #######################
@@ -48,9 +49,9 @@ apply_transformations <- function (data) {
   data$workingday <- as.factor(data$workingday)
   data$weather <- as.factor(data$weather)
   data$hour <- as.factor(data$hour)
-  data$day <- as.factor(data$day)
-  data$days.from.start <- (as.Date(data$datetime) - as.Date("2011-01-01"))
-  data$hours.from.start <- difftime(data$datetime, as.Date('2011-01-01'), units="hours")
+  data$day <- factor(data$day, levels=c('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'), ordered=TRUE)
+  data$days.from.start <- as.integer((as.Date(data$datetime) - as.Date("2011-01-01")))
+  data$hours.from.start <- as.integer(difftime(data$datetime, as.Date('2011-01-01'), units="hours"))
   
   #Remove outlier with only 1 data point
   data <- data[data$weather != 4,]
@@ -65,6 +66,36 @@ test <- apply_transformations(test)
 #######################
 ## Exploratory Analysis
 #######################
+
+# Correlation plot
+library(ellipse)
+ctab <- cor(train[,c('temp','atemp', 'humidity','windspeed','count','days.from.start')])
+round(ctab, 2)
+colorfun <- colorRamp(c("#CC0000","white","#3366CC"), space="Lab")
+plotcorr(ctab, col=rgb(colorfun((ctab+1)/2), maxColorValue=255),
+         mar = c(0.1, 0.1, 0.1, 0.1))
+
+# Scatter plots
+
+library(gridExtra)
+
+
+p1 <- ggplot(train, aes(atemp, count)) + geom_point(alpha=.15) + ggtitle("Count vs. Temp")
+p2 <- ggplot(train, aes(humidity, count)) + geom_point(alpha=.15) + ggtitle("Count vs. Humidity")
+p3 <- ggplot(train, aes(weather, count)) + geom_boxplot() + ggtitle("Count vs. Weather")
+p4 <- ggplot(train, aes(windspeed, count)) + geom_point(alpha=.15) + ggtitle("Count vs. Windspeed")
+grid.arrange(p1, p2, p3, p4, ncol=2, nrow=2)
+
+
+p1 <- ggplot(train, aes(hour, count)) + geom_boxplot() + ggtitle("Count vs. Hour")
+p2 <- ggplot(train, aes(holiday, count)) + geom_boxplot() + ggtitle("Count vs. Holiday")
+p3 <- ggplot(train, aes(season, count)) + geom_boxplot() + ggtitle("Count vs. Season")
+p4 <- ggplot(train, aes(day, count)) + geom_boxplot() + ggtitle("Count vs. Weekday")
+grid.arrange(p1, p2, p3, p4, ncol=2, nrow=2)
+
+qplot(sort(unique(train$date)), tapply(train$count, train$date, mean), xlab='Date',ylab='Count') + ggtitle("Average count by date")
+
+# Old plots####
 par(mfrow=c(2,2))
 plot(count~atemp, data=train)
 plot(count~humidity, data=train)
