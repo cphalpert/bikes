@@ -16,7 +16,7 @@ set.seed(1)
 #######################
 ## Load packages
 #######################
-# library(ggplot2)
+library(ggplot2)
 # library(readr)
 # library(scales)
 # library(reshape2)
@@ -56,8 +56,6 @@ apply_transformations <- function (data) {
 
 train <- apply_transformations(train)
 test <- apply_transformations(test)
-
-
 
 
 
@@ -160,45 +158,50 @@ kruskal.test(count ~ windspeed, data=train)
 #######################
 ## ANOVA
 #######################
-lm.fit1=lm(casual~poly(hour,1), data=train.data)
-lm.fit2=lm(casual~poly(hour,2), data=train)
-lm.fit3=lm(casual~poly(hour,3), data=train)
-lm.fit4=lm(casual~poly(hour,4), data=train)
-lm.fit5=lm(casual~poly(hour,5), data=train)
-lm.fit6=lm(casual~poly(hour,6), data=train)
-lm.fit7=lm(casual~poly(hour,7), data=train)
-lm.fit8=lm(casual~poly(hour,8), data=train)
+summary(aov(count ~ day, data=train))
 
-anova(lm.fit1, lm.fit2, lm.fit3, lm.fit4, lm.fit5, lm.fit6, lm.fit7, lm.fit8)
+summary(aov(count ~ hour, data=train))
 
-plt=as.matrix(cbind(rep(1,n),poly(hour,6)))%*%as.matrix(lm.fit6$coef)
-par(mfrow=c(2,1))
+summary(aov(count ~ season, data=train))
+
+summary(aov(count ~ weather, data=train))
+
+summary(aov(count ~ day+hour, data=train))
+
+summary(aov(count ~ day+hour+season, data=train))
+
+anova.fit <- aov(log(count + 1) ~ day+hour+season+weather+year, data=train)
+summary(anova.fit)
+
+print(model.tables(anova.fit,"means"),digits=3)
+
+par(mfrow=c(2,2))
+plot(anova.fit)
+
+#pairwise.t.test(train$count, train$day, p.adjust="bonferroni")
+
+
+
+
+lm.fit1=lm(count~poly(hour,1), data=Bike)
+lm.fit2=lm(count~poly(hour,2), data=Bike)
+lm.fit3=lm(count~poly(hour,3), data=Bike)
+lm.fit4=lm(count~poly(hour,4), data=Bike)
+lm.fit5=lm(count~poly(hour,5), data=Bike)
+lm.fit6=lm(count~poly(hour,6), data=Bike)
+lm.fit7=lm(count~poly(hour,7), data=Bike)
+lm.fit8=lm(count~poly(hour,8), data=Bike)
+lm.fit9=lm(count~poly(hour,9), data=Bike)
+lm.fit10=lm(count~poly(hour,10), data=Bike)
+
+anova(lm.fit1, lm.fit2, lm.fit3, lm.fit4, lm.fit5, lm.fit6, lm.fit7, lm.fit8, lm.fit9, lm.fit10)
+
+plt=as.matrix(cbind(rep(1,n),poly(hour,9)))%*%as.matrix(lm.fit9$coef)
+par(mfrow=c(1,2))
+
+plot(hour, count)
 plot(hour,plt)
-plot(hour, casual)
 
-
-
-
-
-anova.data <- ddply(train[train$est >= '2011-01-01' & train$est < '2012-12-15' ,], c("day", "date"), summarise, count = sum(count))
-
-anova.fit <- aov(count ~ day+hour, data=train[train$est >= '2011-01-01' & train$est < '2012-12-15',])
-summary(anova.fit)
-
-anova.fit
-print(model.tables(anova.fit,"means"),digits=3)
-#layout(matrix(c(1,2,3,4),2,2)) # optional layout 
-#plot(anova.fit)
-
-pairwise.t.test(anova.data$count, anova.data$day, p.adjust="bonferroni")
-
-anova.fit <- aov(count ~ day, data=train[train$est >= '2011-01-01' & train$est < '2012-12-15',])
-summary(anova.fit)
-print(model.tables(anova.fit,"means"),digits=3)
-layout(matrix(c(1,2,3,4),2,2)) # optional layout 
-plot(anova.fit)
-
-plot(anova.fit)
 
 
 
@@ -208,14 +211,71 @@ plot(anova.fit)
 #######################
 
 # Apply subset
-train.data <- subset(train, select=-c(casual, count, datetime, times, year, date))
+train.data <- subset(train, select=-c(casual, registered, datetime, times, year, date, workingday))
 
 # Specify functional form
-formula <- as.formula(registered~.)
+formula <- as.formula(count~.)
 
 # Simple linear regression
-train.lm.fit=lm(formula, data=train.data)
+train.lm.fit <- lm(formula, data=train.data)
 summary(train.lm.fit)
+#######################
+## Forward selection
+#######################
+library(leaps)
+
+train.regfit <- regsubsets(formula, data=train.data, nvmax=NULL, nbest=1, method='exhaustive')
+plot(train.regfit)
+
+train.model.mat <- model.matrix(formula, data=train.data)
+
+#######################
+## K-fold Cross validation
+#######################
+library(caret)
+
+set.seed(1)
+k.cv = 5
+p <- dim(train.model.mat)[2] - 1
+n <- dim(train.data)[1]
+train.val.errors <- matrix(NA, p , k.cv)
+folds <- createFolds(c(1:n), k=k.cv, list=TRUE, returnTrain=FALSE)
+
+for(j in 1:k.cv){
+  fold_index <- folds[[j]]
+  train.regfit <- regsubsets(formula, data=train.data[-fold_index,], nvmax=p, nbest=1, method='forward')
+  p1 <- train.regfit$nvmax - 1
+  for(i in 1:p1){
+    coefi <- coef(train.regfit, id=i)
+    train.mat <- train.model.mat[fold_index,names(coefi)]
+    pred <- as.matrix(train.mat) %*% as.matrix(coefi)
+    train.val.errors[i,j] <- mean((train$count[fold_index]-pred)^2)
+  }
+}
+
+
+
+regfit.mse=apply(train.val.errors,1,mean)
+which.min(regfit.mse)
+plot(regfit.mse)
+
+
+
+coefi=coef(train.regfit, id=4)
+bestfit.mat=train.model.mat[,names(coefi)]
+lm.bestfit=lm(train$count~.-1,data=data.frame(bestfit.mat))
+summary(lm.bestfit)
+## R^2 and Adjust R^2 are both 68%, which 
+
+
+
+
+
+
+
+
+
+
 
 #######################
 ## Forward selection
@@ -224,34 +284,38 @@ library(leaps)
 train.regfit=regsubsets(formula, data=train.data, nvmax=NULL, nbest=1, method='forward')
 summary(train.regfit)
 
-train.matrix <- model.matrix(formula, data=train.data)
+train.model.mat <- model.matrix(formula, data=train.data)
 
 #######################
 ## Cross validation
 #######################
 library(caret)
-set.seed(1)
-k.cv = 5
 
-train.val.errors <- matrix(NA,train.regfit$nvmax, k.cv)
-folds <- createFolds(c(1:dim(train.data)[1]), k=k.cv, list=TRUE, returnTrain=FALSE)
-for(i in 1:train.regfit$nvmax){
+set.seed(1)
+k.cv = 4
+p <- train.regfit$nvmax - 1
+n <- dim(train.data)[1]
+train.val.errors <- matrix(NA, p , k.cv)
+folds <- createFolds(c(1:n), k=k.cv, list=TRUE, returnTrain=FALSE)
+for(i in 1:p){
   coefi=coef(train.regfit, id=i)
   train.mat = train.model.mat[,names(coefi)]
   for(j in 1:k.cv){
-    test=folds[[j]]
-    lm.fit=lm(train$registered[-test]~.-1, data=data.frame(train.mat[-test,]))
-    pred=as.matrix(train.mat[test,]) %*% as.matrix(lm.fit$coef)
-    train.val.errors[i,j]=mean((as.matrix(train$registered[test])-pred)^2)
+    fold_index=folds[[j]]
+    lm.fit=lm(train$count[-fold_index]~.-1, data=data.frame(train.mat[-fold_index,]))
+    pred=as.matrix(train.mat[fold_index,]) %*% as.matrix(lm.fit$coef)
+    train.val.errors[i,j]=mean((as.matrix(train$count[fold_index])-pred)^2)
   }
 }
 regfit.mse=apply(train.val.errors,1,mean)
 which.min(regfit.mse)
+
+
 ## The best model is the one with 22 coefficients
 plot(regfit.mse)
-coefi=coef(train.regfit, id=22)
-bestfit.mat=model.mat[,names(coefi)]
-lm.bestfit=lm(train$registered~.-1,data=data.frame(bestfit.mat))
+coefi=coef(train.regfit, id=4)
+bestfit.mat=train.model.mat[,names(coefi)]
+lm.bestfit=lm(train$count~.-1,data=data.frame(bestfit.mat))
 summary(lm.bestfit)
 ## R^2 and Adjust R^2 are both 68%, which 
 
@@ -262,23 +326,31 @@ summary(lm.bestfit)
 ## Splines
 #######################
 library(splines)
-par(mfrow=c(1,1))
-plot(temp,registered)
-lines(fit.s, col='green', lwd=5)
-templims=range(temp)
-temp.grid=seq(from=templims[1],to=templims[2])
-fit.s=smooth.spline(temp, registered, cv=TRUE)
-pred=predict(fit.s, newdata=list(temp=temp.grid),se=T)
-fit.s$df
-res=(fit.s$yin-fit.s$y)/(1-fit.s$lev)
-sigma=sqrt(var(res))
-upper=fit.s$y+2.0*sigma*sqrt(fit.s$lev)
-lower=fit.s$y-2.0*sigma*sqrt(fit.s$lev)
 
-plot(temp,registered)
-lines(pred$y, lwd=2, col='green')
+variable <- 'temp'
+# Get range of temperature variable
+var.lims <- range(train[,variable])
+var.seq <- seq(from=var.lims[1], to=var.lims[2])
+
+var.spline.fit <- smooth.spline(train[,variable], train$count, cv=TRUE)
+var.spline.fit$df
+# lines(fit.s, lwd=2, col='green')
+
+var.spline.predict <- predict(var.spline.fit, newdata=list(var.seq),se=T)
+
+res=(var.spline.fit$df$yin - var.spline.fit$df$y)/(1-var.spline.fit$df$lev)
+sigma=sqrt(var(res))
+upper=var.spline.fit$y+2.0*sigma*sqrt(var.spline.fit$lev)
+lower=var.spline.fit$y-2.0*sigma*sqrt(var.spline.fit$lev)
+
+
+par(mfrow=c(1,1))
+plot(train$count~train[,variable])
+lines(var.spline.predict$y, lwd=2, col='green')
 lines(upper, lwd=2, col='grey', lty=2)
 lines(lower, lwd=2, col='grey', lty=2)
+
+
 
 #######################
 ## GAM
