@@ -54,7 +54,7 @@ apply_transformations <- function (data) {
   data$hours.from.start <- as.integer(difftime(data$datetime, as.Date('2011-01-01'), units="hours"))
   
   #Remove outlier with only 1 data point
-  #data <- data[data$weather != 4,]
+  data <- data[data$weather != 4,]
   return(data)
 }
 
