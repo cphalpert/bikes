@@ -263,6 +263,7 @@ for(j in 1:k.cv){
 regfit.mse=apply(train.val.errors,1,mean)
 which.min(regfit.mse)
 regfit.mse[which.min(regfit.mse)]
+par(mfrow=c(1,1))
 plot(regfit.mse)
 
 
@@ -270,6 +271,58 @@ plot(regfit.mse)
 best.coefi=coef(train.regfit, id=which.min(regfit.mse))
 bestfit.mat=train.model.mat[,names(best.coefi)]
 lm.bestfit=lm(train$count~.-1,data=data.frame(bestfit.mat))
+summary(lm.bestfit)
+
+par(mfrow=c(2,2))
+plot(lm.bestfit)
+
+
+#### BEST SUBSET FOR LOG ####
+
+# Specify functional form
+formulalog <- as.formula(log(count)~.)
+
+# Simple linear regression
+train.lm.fit <- lm(formulalog, data=train.data)
+summary(train.lm.fit)
+#######################
+## Forward selection with K-fold Cross validation
+#######################
+library(leaps)
+library(caret)
+
+train.model.mat <- model.matrix(formulalog, data=train.data)
+
+set.seed(1)
+k.cv = 10
+p <- dim(train.model.mat)[2] - 1
+n <- dim(train.data)[1]
+train.val.errors <- matrix(NA, p , k.cv)
+folds <- createFolds(c(1:n), k=k.cv, list=TRUE, returnTrain=FALSE)
+
+for(j in 1:k.cv){
+  fold_index <- folds[[j]]
+  train.regfit <- regsubsets(formulalog, data=train.data[-fold_index,], nvmax=p, nbest=1, method='forward')
+  p1 <- train.regfit$nvmax - 1
+  for(i in 1:p1){
+    coefi <- coef(train.regfit, id=i)
+    train.mat <- train.model.mat[fold_index,names(coefi)]
+    pred <- as.matrix(train.mat) %*% as.matrix(coefi)
+    train.val.errors[i,j] <- mean((train$count[fold_index]-exp(pred))^2)
+  }
+}
+
+regfit.mse=apply(train.val.errors,1,mean)
+which.min(regfit.mse)
+regfit.mse[which.min(regfit.mse)]
+par(mfrow=c(1,1))
+plot(regfit.mse)
+
+
+# Extract the best model
+best.coefi=coef(train.regfit, id=which.min(regfit.mse))
+bestfit.mat=train.model.mat[,names(best.coefi)]
+lm.bestfit=lm(log(train$count)~.-1,data=data.frame(bestfit.mat))
 summary(lm.bestfit)
 
 par(mfrow=c(2,2))
