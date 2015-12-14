@@ -272,6 +272,7 @@ bestfit.mat=train.model.mat[,names(best.coefi)]
 lm.bestfit=lm(train$count~.-1,data=data.frame(bestfit.mat))
 summary(lm.bestfit)
 
+par(mfrow=c(2,2))
 plot(lm.bestfit)
 
 
