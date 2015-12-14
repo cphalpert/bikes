@@ -74,6 +74,15 @@ round(ctab, 2)
 colorfun <- colorRamp(c("#CC0000","white","#3366CC"), space="Lab")
 plotcorr(ctab, col=rgb(colorfun((ctab+1)/2), maxColorValue=255),
          mar = c(0.1, 0.1, 0.1, 0.1))
+n <- nrow(ctab)
+for (i in 1:n)
+{
+  for (j in 1:n)
+  {
+    text(j,i,round(ctab[n-i+1,j],2),col="black",cex=0.9)     
+  }
+}
+
 
 # Scatter plots
 
@@ -111,7 +120,7 @@ plot(count~season, data=train)
 
 par(mfrow=c(1,1))
 plot(count~day, data=train)
-
+#### Old plots ####
 
 
 train.count.by.date_hour <- aggregate(datetime ~ date, data=train, FUN=length)
