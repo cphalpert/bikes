@@ -336,22 +336,25 @@ library(boot)
 # 0.89 adj r^2
 f <- as.formula(count~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
 rf <- glm(f, data=train)
-cv.glm(train, rf, K = 5)$delta[2]
+cv.glm(train, rf, K = 5)$delta[1]
 summary(lm(f, data=train))
 
 f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
 rf <- glm(f, data=train)
-cv.glm(train, rf, K = 5)$delta[2]
+cv.glm(train, rf, K = 10)$delta[1]
 summary(lm(f, data=train))
+
+
+
 
 f <- as.formula(count~season+atemp+humidity+windspeed+hour+day+days.from.start+weather)
 #rf <- glm(f, data=train)
-#cv.glm(train, rf, K = 7)$delta[2]
+#cv.glm(train, rf, K = 7)$delta[1]
 summary(lm(f, data=train))
 
 f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day*hour))
 rf <- glm(f, data=train)
-cv.glm(train, rf, K = 5)$delta[2]
+cv.glm(train, rf, K = 5)$delta[1]
 
 
 
@@ -392,10 +395,14 @@ lines(lower, lwd=2, col='grey', lty=2)
 ## GAM
 #######################
 library(mgcv)
-gam.fit <- gam(count~s(as.integer(hour))+s(humidity)+s(temp)+s(windspeed)+s(windspeed)+days.from.start, data=na.omit(train))
+library(gamclass)
+form <- as.formula(log(count)~s(as.integer(hour))+s(humidity)+s(temp)+s(windspeed)+s(windspeed)+s(as.integer(days.from.start))
+gam.fit <- gam(form, data=train)
 par(mfrow=c(2,2))
 plot(gam.fit)
 summary(gam.fit)
+
+CVgam(form, data=train, nfold=10, seed=1)
 
 
 
