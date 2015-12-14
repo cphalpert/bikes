@@ -104,49 +104,6 @@ grid.arrange(p7, p8, ncol=2)
 
 
 
-# Old plots####
-par(mfrow=c(2,2))
-plot(count~atemp, data=train)
-plot(count~humidity, data=train)
-plot(count~weather, data=train)
-plot(count~windspeed, data=train)
-
-par(mfrow=c(2,2))
-# Average count by date
-plot(sort(unique(train$date)), tapply(train$count, train$date, mean))
-plot(count~hour, data=train)
-plot(count~holiday, data=train)
-plot(count~season, data=train)
-
-par(mfrow=c(1,1))
-plot(count~day, data=train)
-#### Old plots ####
-
-
-train.count.by.date_hour <- aggregate(datetime ~ date, data=train, FUN=length)
-ggplot() +
-  geom_point(aes(x=date, y=datetime), data=train.count.by.date_hour)+
-  ggtitle('Count of hourly observations vs date in training data')
-
-cols <- c('datetime','date')
-full.data <- rbind(train[,cols], test[,cols])
-full.count.by.date_hour <- aggregate(datetime ~ date, data=full.data, FUN=length)
-test.count.by.date_hour <- aggregate(datetime ~ date, data=test, FUN=length)
-
-ggplot() +
-  geom_point(aes(x=date, y=datetime), data=full.count.by.date_hour)+
-  geom_point(aes(x=date, y=datetime), data=test.count.by.date_hour, color='red', size = I(3))+
-  ggtitle('Count of hourly observations vs date in full data set')
-
-sum.by.date_hour <- aggregate(count ~ date, data=train, FUN=sum)
-ggplot() + 
-  geom_point(data=sum.by.date_hour, aes(x=date, y=count), color='black') + 
-  geom_point(data=sum.by.date_hour[train.count.by.date_hour$datetime < 24,], aes(x=date, y=count), color='red', size = I(3)) +
-  ggtitle("Sum of count vs date-hour")
-
-
-
-
 #######################
 ## Wilcox test (IMS CH10)
 #######################
