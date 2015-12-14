@@ -47,14 +47,14 @@ apply_transformations <- function (data) {
   data$season <- as.factor(data$season)
   data$holiday <- as.factor(data$holiday)
   data$workingday <- as.factor(data$workingday)
-  data$weather <- as.factor(data$weather)
+  data$weather <- factor(data$weather, labels=c('Clear', 'Mist', 'Light Rain/Snow', 'Heavy Rain/Snow'))
   data$hour <- as.factor(data$hour)
   data$day <- factor(data$day, levels=c('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'), ordered=TRUE)
   data$days.from.start <- as.integer((as.Date(data$datetime) - as.Date("2011-01-01")))
   data$hours.from.start <- as.integer(difftime(data$datetime, as.Date('2011-01-01'), units="hours"))
   
   #Remove outlier with only 1 data point
-  data <- data[data$weather != 4,]
+  #data <- data[data$weather != 4,]
   return(data)
 }
 
@@ -87,63 +87,20 @@ for (i in 1:n)
 # Scatter plots
 
 library(gridExtra)
+p1 <- ggplot(train, aes(atemp, count)) + geom_point(alpha=.15) + ggtitle("Count increases with temperature") + xlab('"Feels like" temperature in C') + ylab('Rental Count')
+p2 <- ggplot(train, aes(humidity, count)) + geom_point(alpha=.15) + ggtitle("Count decreases with humidity")  + xlab('Humidity') + ylab('Rental Count')
+p3 <- ggplot(train, aes(weather, count)) + geom_boxplot() + ggtitle("Count decreases with bad weather")  + xlab('Weather') + ylab('Rental Count')
+p4 <- ggplot(train, aes(windspeed, count)) + geom_point(alpha=.15) + ggtitle("Count decreases with windspeed")  + xlab('Windspeed') + ylab('Rental Count')
+p5 <- ggplot(train, aes(hour, count)) + geom_boxplot() + ggtitle("Count spikes during commute times") + xlab('Hour') + ylab('Rental Count') 
+p6 <- ggplot(train, aes(holiday, count)) + geom_boxplot() + ggtitle("Count drops on holidays") + xlab('Holiday') + ylab('Rental Count')
+p7 <- ggplot(train, aes(season, count)) + geom_boxplot() + ggtitle("Count is largest in the summer") + xlab('Season') + ylab('Rental Count')
+p8 <- ggplot(train, aes(day, count)) + geom_boxplot() + ggtitle("Count decreases on weekends") + xlab('Weekday') + ylab('Rental Count')
 
-
-p1 <- ggplot(train, aes(atemp, count)) + geom_point(alpha=.15) + ggtitle("Count vs. Temp")
-p2 <- ggplot(train, aes(humidity, count)) + geom_point(alpha=.15) + ggtitle("Count vs. Humidity")
-p3 <- ggplot(train, aes(weather, count)) + geom_boxplot() + ggtitle("Count vs. Weather")
-p4 <- ggplot(train, aes(windspeed, count)) + geom_point(alpha=.15) + ggtitle("Count vs. Windspeed")
-grid.arrange(p1, p2, p3, p4, ncol=2, nrow=2)
-
-
-p1 <- ggplot(train, aes(hour, count)) + geom_boxplot() + ggtitle("Count vs. Hour")
-p2 <- ggplot(train, aes(holiday, count)) + geom_boxplot() + ggtitle("Count vs. Holiday")
-p3 <- ggplot(train, aes(season, count)) + geom_boxplot() + ggtitle("Count vs. Season")
-p4 <- ggplot(train, aes(day, count)) + geom_boxplot() + ggtitle("Count vs. Weekday")
-grid.arrange(p1, p2, p3, p4, ncol=2, nrow=2)
-
-qplot(sort(unique(train$date)), tapply(train$count, train$date, mean), xlab='Date',ylab='Count') + ggtitle("Average count by date")
-
-# Old plots####
-par(mfrow=c(2,2))
-plot(count~atemp, data=train)
-plot(count~humidity, data=train)
-plot(count~weather, data=train)
-plot(count~windspeed, data=train)
-
-par(mfrow=c(2,2))
-# Average count by date
-plot(sort(unique(train$date)), tapply(train$count, train$date, mean))
-plot(count~hour, data=train)
-plot(count~holiday, data=train)
-plot(count~season, data=train)
-
-par(mfrow=c(1,1))
-plot(count~day, data=train)
-#### Old plots ####
-
-
-train.count.by.date_hour <- aggregate(datetime ~ date, data=train, FUN=length)
-ggplot() +
-  geom_point(aes(x=date, y=datetime), data=train.count.by.date_hour)+
-  ggtitle('Count of hourly observations vs date in training data')
-
-cols <- c('datetime','date')
-full.data <- rbind(train[,cols], test[,cols])
-full.count.by.date_hour <- aggregate(datetime ~ date, data=full.data, FUN=length)
-test.count.by.date_hour <- aggregate(datetime ~ date, data=test, FUN=length)
-
-ggplot() +
-  geom_point(aes(x=date, y=datetime), data=full.count.by.date_hour)+
-  geom_point(aes(x=date, y=datetime), data=test.count.by.date_hour, color='red', size = I(3))+
-  ggtitle('Count of hourly observations vs date in full data set')
-
-sum.by.date_hour <- aggregate(count ~ date, data=train, FUN=sum)
-ggplot() + 
-  geom_point(data=sum.by.date_hour, aes(x=date, y=count), color='black') + 
-  geom_point(data=sum.by.date_hour[train.count.by.date_hour$datetime < 24,], aes(x=date, y=count), color='red', size = I(3)) +
-  ggtitle("Sum of count vs date-hour")
-
+ggplot() + geom_point(aes(x=sort(unique(train$date)), y=tapply(train$count, train$date, mean)))  + ggtitle("Average count by date increases over time") + xlab('Date') + ylab('Rental Count')
+grid.arrange(p1, p2, ncol=2)
+grid.arrange(p3, p4, ncol=2)
+grid.arrange(p5, p6, ncol=2)
+grid.arrange(p7, p8, ncol=2)
 
 
 
