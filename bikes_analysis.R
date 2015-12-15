@@ -265,8 +265,7 @@ for(j in 1:k.cv){
 }
   
   
-  
-regfit.mse=apply(na.omit(train.val.errors),1,mean)
+
 which.min(regfit.mse)
 regfit.mse[which.min(regfit.mse)]
 par(mfrow=c(1,1))
@@ -318,7 +317,7 @@ for(j in 1:k.cv){
   }
 }
 
-regfit.mse=apply(na.omit(train.val.errors),1,mean)
+
 which.min(regfit.mse)
 regfit.mse[which.min(regfit.mse)]
 par(mfrow=c(1,1))
