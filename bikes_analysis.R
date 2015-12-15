@@ -283,7 +283,7 @@ par(mfrow=c(2,2))
 plot(lm.bestfit)
 
 
-#### BEST SUBSET FOR LOG ####
+#### Forward selection with log transformed response variable ####
 
 # Specify functional form
 formulalog <- as.formula(log(count)~.)
