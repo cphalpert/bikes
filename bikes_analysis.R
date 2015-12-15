@@ -47,7 +47,6 @@ apply_transformations <- function (data) {
   data$season <- as.factor(data$season)
   data$holiday <- as.factor(data$holiday)
   data$workingday <- as.factor(data$workingday)
-  data <- data[data$weather != 4,]
   data$weather <- factor(data$weather, labels=c('Clear', 'Mist', 'Light Rain/Snow'))
   data$hour <- as.factor(data$hour)
   data$day <- factor(data$day, levels=c('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'), ordered=TRUE)
