@@ -410,5 +410,5 @@ CVgam(form, data=train, nfold=10, seed=1)
 
 ### Kaggle submission
 pred <- predict(rf, test)
-write.table(cbind(test$datetime, data.frame(exp(pred))), quote=FALSE, file='testing.csv', sep=',', row.names=FALSE, col.names=c('datetime','count'))
+write.table(cbind(test$datetime, data.frame(exp(pred))), quote=FALSE, file='testing.csv', sep=',', row.names=FALSE, col.names=c('datetime','count')))
   
