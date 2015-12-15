@@ -230,6 +230,7 @@ plot(windspeed.0,plt)
   
 # Remove outlier with 1 observation
 train <- train[train$weather != 'Heavy Rain/Snow',]
+train$weather=droplevels(train$weather)
 # Apply subset
 train.data <- subset(train, select=-c(casual, registered, datetime, times, year, date, workingday, hours.from.start, temp))
   
