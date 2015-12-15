@@ -276,8 +276,9 @@ summary(lm.bestfit)
 par(mfrow=c(2,2))
 plot(lm.bestfit)
 
-
-#### Forward selection with log transformed response variable ####
+###########################################
+#### Log transformed response variable ####
+###########################################
 
 # Specify functional form
 formulalog <- as.formula(log(count)~.)
@@ -393,19 +394,20 @@ lines(lower, lwd=2, col='grey', lty=2)
 
 #######################
 ## GAM
+
+
 #######################
 library(mgcv)
 library(gamclass)
-form <- as.formula(log(count)~s(as.integer(hour))+s(humidity)+s(temp)+s(windspeed)+s(windspeed)+s(as.integer(days.from.start))
+form <- as.formula(log(count)~hour+weather+ns(humidity)+ns(atemp)+ns(windspeed)+s(as.integer(days.from.start)))
 gam.fit <- gam(form, data=train)
-par(mfrow=c(2,2))
-plot(gam.fit)
 summary(gam.fit)
 
-                   
 gam.cv=CVgam(form, data=train, nfold=10, seed=1)
 mean((exp(gam.cv$fitted)-train$count)^2)
 
+par(mfrow=c(2,2))
+plot(gam.fit)
 
 
 
