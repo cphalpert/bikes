@@ -338,35 +338,6 @@ plot(lm.bestfit)
 
 
 
-# Models with transformations
-library(boot)
-# 3726 MSE
-# 0.89 adj r^2
-f <- as.formula(count~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
-rf <- glm(f, data=train)
-cv.glm(train, rf, K = 5)$delta[1]
-summary(lm(f, data=train))
-
-f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
-rf <- glm(f, data=train)
-cv.glm(train, rf, K = 10)$delta[1]
-summary(lm(f, data=train))
-
-
-
-
-f <- as.formula(count~season+atemp+humidity+windspeed+hour+day+days.from.start+weather)
-#rf <- glm(f, data=train)
-#cv.glm(train, rf, K = 7)$delta[1]
-summary(lm(f, data=train))
-
-f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day*hour))
-rf <- glm(f, data=train)
-cv.glm(train, rf, K = 5)$delta[1]
-
-
-
-
 #######################
 ## Splines
 #######################
@@ -415,12 +386,3 @@ summary(gam.fit)
                    
 gam.cv=CVgam(form, data=train, nfold=10, seed=1)
 mean((exp(gam.cv$fitted)-train$count)^2)
-
-
-
-
-
-### Kaggle submission
-pred <- predict(rf, test)
-write.table(cbind(test$datetime, data.frame(exp(pred))), quote=FALSE, file='testing.csv', sep=',', row.names=FALSE, col.names=c('datetime','count')))
-  
