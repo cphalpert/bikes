@@ -199,24 +199,26 @@ plot(anova.fit)
 
 
 
-lm.fit1=lm(count~poly(hour,1), data=Bike)
-lm.fit2=lm(count~poly(hour,2), data=Bike)
-lm.fit3=lm(count~poly(hour,3), data=Bike)
-lm.fit4=lm(count~poly(hour,4), data=Bike)
-lm.fit5=lm(count~poly(hour,5), data=Bike)
-lm.fit6=lm(count~poly(hour,6), data=Bike)
-lm.fit7=lm(count~poly(hour,7), data=Bike)
-lm.fit8=lm(count~poly(hour,8), data=Bike)
-lm.fit9=lm(count~poly(hour,9), data=Bike)
-lm.fit10=lm(count~poly(hour,10), data=Bike)
+windspeed.0=windspeed[windspeed>0]
+lm.fit1=lm(count~poly(windspeed,1), data=train)
+lm.fit2=lm(count~poly(windspeed,2), data=train)
+lm.fit3=lm(count~poly(windspeed,3), data=train)
+lm.fit4=lm(count~poly(windspeed,4), data=train)
+lm.fit5=lm(count~poly(windspeed,5), data=train)
+lm.fit6=lm(count~poly(windspeed,6), data=train)
+lm.fit7=lm(count~poly(windspeed,7), data=train)
+lm.fit8=lm(count~poly(windspeed,8), data=train)
+lm.fit9=lm(count~poly(windspeed,9), data=train)
 
-anova(lm.fit1, lm.fit2, lm.fit3, lm.fit4, lm.fit5, lm.fit6, lm.fit7, lm.fit8, lm.fit9, lm.fit10)
+anova(lm.fit1, lm.fit2, lm.fit3, lm.fit4, lm.fit5, lm.fit6, lm.fit7, lm.fit8, lm.fit9)
 
-plt=as.matrix(cbind(rep(1,n),poly(hour,9)))%*%as.matrix(lm.fit9$coef)
+n.wind=length(windspeed.0)
+plt=as.matrix(cbind(rep(1,n.wind),poly(windspeed.0,6)))%*%as.matrix(lm.fit6$coef)
 par(mfrow=c(1,2))
 
-plot(hour, count)
-plot(hour,plt)
+plot(windspeed.0, count[windspeed>0])
+plot(windspeed.0,plt)
+
 
 
 
