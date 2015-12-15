@@ -181,14 +181,12 @@ summary(aov(count ~ season, data=train))
 summary(aov(count ~ weather, data=train))
 summary(aov(count ~ day+hour, data=train))
 anova.fit <- aov(count ~ day+hour+season, data=train)
+
 summary(anova.fit)
 
 print(model.tables(anova.fit,"means"),digits=3)
 
-par(mfrow=c(2,2))
-plot(anova.fit)
 
-#pairwise.t.test(train$count, train$day, p.adjust="bonferroni")
 
 
 
