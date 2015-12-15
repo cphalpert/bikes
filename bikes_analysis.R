@@ -402,7 +402,9 @@ par(mfrow=c(2,2))
 plot(gam.fit)
 summary(gam.fit)
 
-CVgam(form, data=train, nfold=10, seed=1)
+                   
+gam.cv=CVgam(form, data=train, nfold=10, seed=1)
+mean((exp(gam.cv$fitted)-train$count)^2)
 
 
 
