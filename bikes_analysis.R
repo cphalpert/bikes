@@ -5,16 +5,17 @@
 
 set.seed(1)
 
+
 #######################
 ## Install required packages
 #######################
 # install.packages('ggplot2', repos = "http://cran.us.r-project.org")
-# install.packages('scales', repos = "http://cran.us.r-project.org")
-# install.packages('readr', repos = "http://cran.us.r-project.org")
 # install.packages('leaps', repos = "http://cran.us.r-project.org")
 # install.packages('caret', repos = "http://cran.us.r-project.org")
 # install.packages('ellipse', repos = "http://cran.us.r-project.org")
 # install.packages('gridExtra', repos = "http://cran.us.r-project.org")
+
+
 #######################
 ## Load packages
 #######################
@@ -24,6 +25,7 @@ library(ggplot2)
 # library(reshape2)
 # library(plyr)
 # library(caret)
+
 
 #######################
 ## Load and transform data
@@ -43,7 +45,6 @@ apply_transformations <- function (data) {
   data$day   <-strftime(data$datetime,'%A')
   # Isolate date
   data$date <- as.POSIXct(strftime(data$datetime, format="%Y-%m-%d"), format="%Y-%m-%d")
-  
   # Convert numeric factors
   data$season <- as.factor(data$season)
   data$holiday <- as.factor(data$holiday)
@@ -53,8 +54,6 @@ apply_transformations <- function (data) {
   data$day <- factor(data$day, levels=c('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'), ordered=TRUE)
   data$days.from.start <- as.integer((as.Date(data$datetime) - as.Date("2011-01-01")))
   data$hours.from.start <- as.integer(difftime(data$datetime, as.Date('2011-01-01'), units="hours"))
-  
-  
   return(data)
 }
 
@@ -62,11 +61,9 @@ train <- apply_transformations(train)
 test <- apply_transformations(test)
 
 
-
 #######################
 ## Exploratory Analysis
 #######################
-
 # Correlation plot
 library(ellipse)
 ctab <- cor(train[,c('temp','atemp', 'humidity','windspeed','count','days.from.start')])
@@ -83,9 +80,7 @@ for (i in 1:n)
   }
 }
 
-
 # Scatter plots
-
 library(gridExtra)
 p1 <- ggplot(train, aes(atemp, count)) + geom_point(alpha=.15) + ggtitle("Count increases with temperature") + xlab('"Feels like" temperature in C') + ylab('Rental Count')
 p2 <- ggplot(train, aes(humidity, count)) + geom_point(alpha=.15) + ggtitle("Count decreases with humidity")  + xlab('Humidity') + ylab('Rental Count')
@@ -165,10 +160,7 @@ kruskal.test(count ~ temp, data=train)
 # there are significant differences across humidity
 kruskal.test(count ~ humidity, data=train)
 
-
 kruskal.test(count ~ windspeed, data=train)
-
-
 
 
 #######################
@@ -188,46 +180,33 @@ summary(aov(count ~ day+hour+season, data=train))
 
 anova.fit <- aov(log(count + 1) ~ day+hour+season+weather+year, data=train)
 summary(anova.fit)
-
 print(model.tables(anova.fit,"means"),digits=3)
 
-par(mfrow=c(2,2))
-plot(anova.fit)
-
-#pairwise.t.test(train$count, train$day, p.adjust="bonferroni")
-
-
-
-
-windspeed.0=windspeed[windspeed>0]
-lm.fit1=lm(count~poly(windspeed,1), data=train[windspeed>0])
-lm.fit2=lm(count~poly(windspeed,2), data=train[windspeed>0])
-lm.fit3=lm(count~poly(windspeed,3), data=train[windspeed>0])
-lm.fit4=lm(count~poly(windspeed,4), data=train[windspeed>0])
-lm.fit5=lm(count~poly(windspeed,5), data=train[windspeed>0])
-lm.fit6=lm(count~poly(windspeed,6), data=train[windspeed>0])
-lm.fit7=lm(count~poly(windspeed,7), data=train[windspeed>0])
-lm.fit8=lm(count~poly(windspeed,8), data=train[windspeed>0])
-lm.fit9=lm(count~poly(windspeed,9), data=train[windspeed>0])
+# Polynomial regression of count~windspeed
+windspeed.0=train[train$windspeed>0,'windspeed']
+lm.fit1=lm(count~poly(windspeed,1), data=train[train$windspeed>0,])
+lm.fit2=lm(count~poly(windspeed,2), data=train[train$windspeed>0,])
+lm.fit3=lm(count~poly(windspeed,3), data=train[train$windspeed>0,])
+lm.fit4=lm(count~poly(windspeed,4), data=train[train$windspeed>0,])
+lm.fit5=lm(count~poly(windspeed,5), data=train[train$windspeed>0,])
+lm.fit6=lm(count~poly(windspeed,6), data=train[train$windspeed>0,])
+lm.fit7=lm(count~poly(windspeed,7), data=train[train$windspeed>0,])
+lm.fit8=lm(count~poly(windspeed,8), data=train[train$windspeed>0,])
+lm.fit9=lm(count~poly(windspeed,9), data=train[train$windspeed>0,])
 
 anova(lm.fit1, lm.fit2, lm.fit3, lm.fit4, lm.fit5, lm.fit6, lm.fit7, lm.fit8, lm.fit9)
 
 n.wind=length(windspeed.0)
 plt=as.matrix(cbind(rep(1,n.wind),poly(windspeed.0,6)))%*%as.matrix(lm.fit6$coef)
+
 par(mfrow=c(1,2))
-
-plot(windspeed.0, count[windspeed>0])
+plot(windspeed.0, train[train$windspeed>0, 'count'])
 plot(windspeed.0,plt)
-
-
-
-
 
 
 #######################
 ## Linear regression
 #######################
-  
 # Remove outlier with 1 observation
 train <- train[train$weather != 'Heavy Rain/Snow',]
 train$weather=droplevels(train$weather)
@@ -267,13 +246,11 @@ for(j in 1:k.cv){
     }
 }
   
-  
 regfit.mse <- apply(train.val.errors,1,mean)
 which.min(regfit.mse)
 regfit.mse[which.min(regfit.mse)]
 par(mfrow=c(1,1))
 plot(regfit.mse)
-
 
 # Extract the best model
 best.coefi=coef(train.regfit, id=which.min(regfit.mse))
@@ -284,9 +261,9 @@ summary(lm.bestfit)
 par(mfrow=c(2,2))
 plot(lm.bestfit)
 
-
-#### Forward selection with log transformed response variable ####
-
+######################
+#### Log transformed response variable
+######################
 # Specify functional form
 formulalog <- as.formula(log(count)~.)
 
@@ -296,9 +273,6 @@ summary(train.lm.fit)
 #######################
 ## Forward selection with K-fold Cross validation
 #######################
-library(leaps)
-library(caret)
-
 train.model.mat <- model.matrix(formulalog, data=train.data)
 
 set.seed(1)
@@ -337,7 +311,6 @@ par(mfrow=c(2,2))
 plot(lm.bestfit)
 
 
-
 #######################
 ## Splines
 #######################
@@ -346,12 +319,10 @@ library(splines)
 variable <- 'atemp'
 # Get range of temperature variable
 var.lims <- range(train[,variable])
-#var.seq <- seq(from=var.lims[1], to=var.lims[2], by='h')
 var.seq <- seq(from=var.lims[1], to=var.lims[2])
 
 var.spline.fit <- smooth.spline(train[,variable], train$count, cv=TRUE)
 var.spline.fit$df
-# lines(fit.s, lwd=2, col='green')
 
 var.spline.predict <- predict(var.spline.fit, newdata=list(var.seq),se=T)
 
@@ -363,11 +334,9 @@ lower<-var.spline.fit$y-2.0*sigma*sqrt(var.spline.fit$lev)
 
 par(mfrow=c(1,1))
 plot(train$count~train[,variable])
-#lines(var.spline.fit, lwd=2, col='green')
 lines(var.spline.predict$y, lwd=2, col='green')
 lines(upper, lwd=2, col='grey', lty=2)
 lines(lower, lwd=2, col='grey', lty=2)
-
 
 
 #######################
@@ -379,7 +348,7 @@ library(gamclass)
 #form <- as.formula(log(count)~hour+weather+ns(humidity)+ns(atemp)+ns(windspeed)+s(as.integer(days.from.start)))
 form <- as.formula(log(count)~hour+weather+season+s(humidity)+s(atemp)+ns(windspeed)+s(as.integer(days.from.start)))
 gam.fit <- gam(form, data=train)
-par(mfrow=c(2,2))
+par(mfrow=c(1,3))
 plot(gam.fit)
 summary(gam.fit)
 
