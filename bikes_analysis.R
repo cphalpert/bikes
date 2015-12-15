@@ -14,6 +14,7 @@ set.seed(1)
 # install.packages('leaps', repos = "http://cran.us.r-project.org")
 # install.packages('caret', repos = "http://cran.us.r-project.org")
 # install.packages('ellipse', repos = "http://cran.us.r-project.org")
+# install.packages('gridExtra', repos = "http://cran.us.r-project.org")
 #######################
 ## Load packages
 #######################
@@ -47,13 +48,12 @@ apply_transformations <- function (data) {
   data$season <- as.factor(data$season)
   data$holiday <- as.factor(data$holiday)
   data$workingday <- as.factor(data$workingday)
-  data$weather <- factor(data$weather, labels=c('Clear', 'Mist', 'Light Rain/Snow'))
+  data$weather <- factor(data$weather, labels=c('Clear', 'Mist', 'Light Rain/Snow', 'Heavy Rain/Snow'))
   data$hour <- as.factor(data$hour)
   data$day <- factor(data$day, levels=c('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'), ordered=TRUE)
   data$days.from.start <- as.integer((as.Date(data$datetime) - as.Date("2011-01-01")))
   data$hours.from.start <- as.integer(difftime(data$datetime, as.Date('2011-01-01'), units="hours"))
   
-  #Remove outlier with only 1 data point
   
   return(data)
 }
@@ -225,13 +225,15 @@ plot(hour,plt)
 #######################
 ## Linear regression
 #######################
-
+  
+# Remove outlier with 1 observation
+train <- train[train$weather != 'Heavy Rain/Snow',]
 # Apply subset
 train.data <- subset(train, select=-c(casual, registered, datetime, times, year, date, workingday, hours.from.start, temp))
-
+  
 # Specify functional form
 formula <- as.formula(count~.)
-
+  
 # Simple linear regression
 train.lm.fit <- lm(formula, data=train.data)
 summary(train.lm.fit)
@@ -240,31 +242,31 @@ summary(train.lm.fit)
 #######################
 library(leaps)
 library(caret)
-
+  
 train.model.mat <- model.matrix(formula, data=train.data)
-
+  
 set.seed(1)
 k.cv = 10
 p <- dim(train.model.mat)[2] - 1
 n <- dim(train.data)[1]
 train.val.errors <- matrix(NA, p , k.cv)
 folds <- createFolds(c(1:n), k=k.cv, list=TRUE, returnTrain=FALSE)
-
+  
 for(j in 1:k.cv){
-  fold_index <- folds[[j]]
-  train.regfit <- regsubsets(formula, data=train.data[-fold_index,], nvmax=p, nbest=1, method='forward')
-  p1 <- train.regfit$nvmax - 1
-  for(i in 1:p1){
-    coefi <- coef(train.regfit, id=i)
-    train.mat <- train.model.mat[fold_index,names(coefi)]
-    pred <- as.matrix(train.mat) %*% as.matrix(coefi)
-    train.val.errors[i,j] <- mean((train$count[fold_index]-pred)^2)
-  }
+    fold_index <- folds[[j]]
+    train.regfit <- regsubsets(formula, data=train.data[-fold_index,], nvmax=p, nbest=1, method='forward')
+    p1 <- train.regfit$nvmax - 1
+    for(i in 1:p1){
+      coefi <- coef(train.regfit, id=i)
+      train.mat <- train.model.mat[fold_index,names(coefi)]
+      pred <- as.matrix(train.mat) %*% as.matrix(coefi)
+      train.val.errors[i,j] <- mean((train$count[fold_index]-pred)^2)
+    }
 }
-
-
-
-regfit.mse=apply(train.val.errors,1,mean)
+  
+  
+  
+regfit.mse=apply(na.omit(train.val.errors),1,mean)
 which.min(regfit.mse)
 regfit.mse[which.min(regfit.mse)]
 par(mfrow=c(1,1))
@@ -316,7 +318,7 @@ for(j in 1:k.cv){
   }
 }
 
-regfit.mse=apply(train.val.errors,1,mean)
+regfit.mse=apply(na.omit(train.val.errors),1,mean)
 which.min(regfit.mse)
 regfit.mse[which.min(regfit.mse)]
 par(mfrow=c(1,1))
