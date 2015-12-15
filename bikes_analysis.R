@@ -194,15 +194,15 @@ plot(anova.fit)
 
 
 windspeed.0=windspeed[windspeed>0]
-lm.fit1=lm(count~poly(windspeed,1), data=train)
-lm.fit2=lm(count~poly(windspeed,2), data=train)
-lm.fit3=lm(count~poly(windspeed,3), data=train)
-lm.fit4=lm(count~poly(windspeed,4), data=train)
-lm.fit5=lm(count~poly(windspeed,5), data=train)
-lm.fit6=lm(count~poly(windspeed,6), data=train)
-lm.fit7=lm(count~poly(windspeed,7), data=train)
-lm.fit8=lm(count~poly(windspeed,8), data=train)
-lm.fit9=lm(count~poly(windspeed,9), data=train)
+lm.fit1=lm(count~poly(windspeed,1), data=train[windspeed>0])
+lm.fit2=lm(count~poly(windspeed,2), data=train[windspeed>0])
+lm.fit3=lm(count~poly(windspeed,3), data=train[windspeed>0])
+lm.fit4=lm(count~poly(windspeed,4), data=train[windspeed>0])
+lm.fit5=lm(count~poly(windspeed,5), data=train[windspeed>0])
+lm.fit6=lm(count~poly(windspeed,6), data=train[windspeed>0])
+lm.fit7=lm(count~poly(windspeed,7), data=train[windspeed>0])
+lm.fit8=lm(count~poly(windspeed,8), data=train[windspeed>0])
+lm.fit9=lm(count~poly(windspeed,9), data=train[windspeed>0])
 
 anova(lm.fit1, lm.fit2, lm.fit3, lm.fit4, lm.fit5, lm.fit6, lm.fit7, lm.fit8, lm.fit9)
 
@@ -224,6 +224,7 @@ plot(windspeed.0,plt)
   
 # Remove outlier with 1 observation
 train <- train[train$weather != 'Heavy Rain/Snow',]
+train$weather=droplevels(train$weather)
 # Apply subset
 train.data <- subset(train, select=-c(casual, registered, datetime, times, year, date, workingday, hours.from.start, temp))
   
