@@ -150,8 +150,14 @@ kruskal.test(count ~ temp, data=train)
 # there are significant differences across humidity
 kruskal.test(count ~ humidity, data=train)
 
-
+# there are significant differences across windspeed
 kruskal.test(count ~ windspeed, data=train)
+
+# there are significant differences across days from start
+kruskal.test(count ~ days.from.start, data=train)
+
+
+
 
 
 
