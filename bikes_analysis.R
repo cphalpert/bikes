@@ -404,7 +404,7 @@ lines(lower, lwd=2, col='grey', lty=2)
 #######################
 library(mgcv)
 library(gamclass)
-form <- as.formula(log(count)~s(as.integer(hour))+s(humidity)+s(temp)+s(windspeed)+s(windspeed)+s(as.integer(days.from.start))
+form <- as.formula(log(count)~s(as.integer(hour))+s(humidity)+s(temp)+s(windspeed)+s(as.integer(days.from.start))
 gam.fit <- gam(form, data=train)
 par(mfrow=c(2,2))
 plot(gam.fit)
