@@ -177,24 +177,16 @@ kruskal.test(count ~ windspeed, data=train)
 summary(aov(count ~ day, data=train))
 
 summary(aov(count ~ hour, data=train))
-
 summary(aov(count ~ season, data=train))
-
 summary(aov(count ~ weather, data=train))
-
 summary(aov(count ~ day+hour, data=train))
+anova.fit <- aov(count ~ day+hour+season, data=train)
 
-summary(aov(count ~ day+hour+season, data=train))
-
-anova.fit <- aov(log(count + 1) ~ day+hour+season+weather+year, data=train)
 summary(anova.fit)
 
 print(model.tables(anova.fit,"means"),digits=3)
 
-par(mfrow=c(2,2))
-plot(anova.fit)
 
-#pairwise.t.test(train$count, train$day, p.adjust="bonferroni")
 
 
 
@@ -247,7 +239,7 @@ library(leaps)
 library(caret)
   
 train.model.mat <- model.matrix(formula, data=train.data)
-  
+
 set.seed(1)
 k.cv = 10
 p <- dim(train.model.mat)[2] - 1
@@ -284,8 +276,9 @@ summary(lm.bestfit)
 par(mfrow=c(2,2))
 plot(lm.bestfit)
 
-
-#### Forward selection with log transformed response variable ####
+###########################################
+#### Log transformed response variable ####
+###########################################
 
 # Specify functional form
 formulalog <- as.formula(log(count)~.)
@@ -401,20 +394,20 @@ lines(lower, lwd=2, col='grey', lty=2)
 
 #######################
 ## GAM
+
+
 #######################
 library(mgcv)
 library(gamclass)
-#form <- as.formula(log(count)~s(as.integer(hour))+s(humidity)+s(temp)+s(windspeed)+s(as.integer(days.from.start))
 form <- as.formula(log(count)~hour+weather+ns(humidity)+ns(atemp)+ns(windspeed)+s(as.integer(days.from.start)))
 gam.fit <- gam(form, data=train)
-par(mfrow=c(2,2))
-plot(gam.fit)
 summary(gam.fit)
 
-                   
 gam.cv=CVgam(form, data=train, nfold=10, seed=1)
 mean((exp(gam.cv$fitted)-train$count)^2)
 
+par(mfrow=c(2,2))
+plot(gam.fit)
 
 
 
