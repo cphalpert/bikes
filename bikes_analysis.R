@@ -177,16 +177,10 @@ kruskal.test(count ~ windspeed, data=train)
 summary(aov(count ~ day, data=train))
 
 summary(aov(count ~ hour, data=train))
-
 summary(aov(count ~ season, data=train))
-
 summary(aov(count ~ weather, data=train))
-
 summary(aov(count ~ day+hour, data=train))
-
-summary(aov(count ~ day+hour+season, data=train))
-
-anova.fit <- aov(log(count + 1) ~ day+hour+season+weather+year, data=train)
+anova.fit <- aov(count ~ day+hour+season, data=train)
 summary(anova.fit)
 
 print(model.tables(anova.fit,"means"),digits=3)
@@ -246,7 +240,7 @@ library(leaps)
 library(caret)
   
 train.model.mat <- model.matrix(formula, data=train.data)
-  
+
 set.seed(1)
 k.cv = 10
 p <- dim(train.model.mat)[2] - 1
