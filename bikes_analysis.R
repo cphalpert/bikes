@@ -337,7 +337,7 @@ library(boot)
 # 0.89 adj r^2
 f <- as.formula(count~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
 rf <- glm(f, data=train)
-cv.glm(train, rf, K = 5)$delta[1]
+cvs <- cv.glm(train, rf, K = 10)$delta[1]
 summary(lm(f, data=train))
 
 f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day)*hour)
@@ -349,8 +349,8 @@ summary(lm(f, data=train))
 
 
 f <- as.formula(count~season+atemp+humidity+windspeed+hour+day+days.from.start+weather)
-#rf <- glm(f, data=train)
-#cv.glm(train, rf, K = 7)$delta[1]
+rf <- glm(f, data=train)
+cv.glm(train, rf, K = 7)$delta[1]
 summary(lm(f, data=train))
 
 f <- as.formula(log(count)~(atemp+humidity+windspeed+days.from.start+holiday+day*hour))
@@ -394,8 +394,6 @@ lines(lower, lwd=2, col='grey', lty=2)
 
 #######################
 ## GAM
-
-
 #######################
 library(mgcv)
 library(gamclass)
